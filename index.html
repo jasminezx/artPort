@@ -90,6 +90,12 @@
   .strip .shot img{width:44px;height:44px;object-fit:cover;border:1px solid var(--line);border-radius:2px;transition:.16s}
   .strip .shot:hover img{border-color:#111;transform:translateY(-2px)}
   .strip .shot span{font-size:10.5px;color:var(--grey)}
+  /* 视频缩略图：中间加播放记号 */
+  .strip .shot.vid{position:relative}
+  .strip .shot.vid::after{content:"▶";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:44px;height:44px;display:grid;place-items:center;color:#fff;font-size:13px;
+    text-shadow:0 1px 4px rgba(0,0,0,.7);pointer-events:none}
+  .strip.many .shot.vid::after{width:40px;height:40px;font-size:12px}
 
   /* ---------- 进度点 ---------- */
   .progress{position:fixed;right:1.6rem;top:50%;transform:translateY(-50%);
@@ -144,6 +150,7 @@
   dialog.lb[open]{display:grid;place-items:center}
   .lb-inner{position:relative;max-width:96vw;max-height:94vh;display:grid;gap:10px;justify-items:center}
   .lb-inner img{max-width:100%;max-height:84vh;display:block;background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .lb-inner video{max-width:100%;max-height:84vh;display:none;background:#000;box-shadow:0 24px 60px rgba(0,0,0,.5)}
   .lb-cap{color:#f4f2ec;font-size:13px;text-align:center}
   .lb-cap b{font-weight:400;color:#fff;margin-right:.6em}
   .lb-btn{position:absolute;top:-12px;right:-6px;width:34px;height:34px;border-radius:50%;
@@ -231,6 +238,7 @@
       <button class="lb-btn" id="lbClose" type="button" aria-label="关闭">×</button>
       <button class="lb-nav prev" id="lbPrev" type="button" aria-label="上一张">‹</button>
       <img id="lbImg" src="" alt="">
+      <video id="lbVid" playsinline loop muted autoplay controls preload="metadata"></video>
       <button class="lb-nav next" id="lbNext" type="button" aria-label="下一张">›</button>
       <p class="lb-cap" id="lbCap"></p>
     </div>
@@ -267,7 +275,7 @@
              data-full="img/01-art-full.jpg" data-label="河豚" data-cap="点击任意处关闭">
       </figure>
     </div>
-    <div class="strip"><button class="shot" type="button" data-full="img/01-p0-full.jpg" data-label="上色" data-cap="给圆圆的河豚涂上蓝色。"><img src="img/01-p0-thumb.jpg" alt="上色"><span>上色</span></button><button class="shot" type="button" data-full="img/01-p1-full.jpg" data-label="添画" data-cap="在河豚身边添上红色海草。"><img src="img/01-p1-thumb.jpg" alt="添画"><span>添画</span></button><button class="shot" type="button" data-full="img/01-p2-full.jpg" data-label="细节" data-cap="画上绿色小鱼，让海底更热闹。"><img src="img/01-p2-thumb.jpg" alt="细节"><span>细节</span></button><button class="shot" type="button" data-full="img/01-p3-full.jpg" data-label="完成" data-cap="举起来，两只彩色的河豚。"><img src="img/01-p3-thumb.jpg" alt="完成"><span>完成</span></button></div>
+    <div class="strip many"><button class="shot" type="button" data-full="img/01-p0-full.jpg" data-label="上色" data-cap="给圆圆的河豚涂上蓝色。"><img src="img/01-p0-thumb.jpg" alt="上色"><span>上色</span></button><button class="shot" type="button" data-full="img/01-p1-full.jpg" data-label="添画" data-cap="在河豚身边添上红色海草。"><img src="img/01-p1-thumb.jpg" alt="添画"><span>添画</span></button><button class="shot" type="button" data-full="img/01-p2-full.jpg" data-label="细节" data-cap="画上绿色小鱼，让海底更热闹。"><img src="img/01-p2-thumb.jpg" alt="细节"><span>细节</span></button><button class="shot" type="button" data-full="img/01-p3-full.jpg" data-label="完成" data-cap="举起来，两只彩色的河豚。"><img src="img/01-p3-thumb.jpg" alt="完成"><span>完成</span></button><button class="shot vid" type="button" data-video="media/01-video.mp4" data-poster="media/01-video-poster.jpg" data-label="动起来" data-cap="AI 动画，让画里的河豚游起来。"><img src="media/01-video-thumb.jpg" alt="动起来"><span>动起来</span></button></div>
   </section>
 
   <section class="section work" id="w02" data-no="02" data-cat="爱秀">
@@ -801,6 +809,7 @@ document.addEventListener('keydown', e => {
 /* ---------- 点击作品 / 过程小图 → 灯箱 ---------- */
 const lb = document.getElementById('lb');
 const lbImg = document.getElementById('lbImg'), lbCap = document.getElementById('lbCap');
+const lbVid = document.getElementById('lbVid');
 const lbPrev = document.getElementById('lbPrev'), lbNext = document.getElementById('lbNext');
 let shots = [], si = 0;
 document.addEventListener('click', e => {
@@ -808,27 +817,49 @@ document.addEventListener('click', e => {
   const img = e.target.closest('figure.art img');
   if (img) {
     shots = [{ full: img.dataset.full, label: img.dataset.label, cap: img.dataset.cap || '' }];
-    show(0); openLb(); return;
+    openLb(); show(0); return;
   }
   const s = e.target.closest('.shot');
   if (s) {
     shots = Array.from(s.closest('.work').querySelectorAll('.shot')).map(x => x.dataset);
-    show(shots.indexOf(s.dataset)); openLb(); return;
+    openLb(); show(shots.indexOf(s.dataset)); return;
   }
   const cell = e.target.closest('.cell');
   if (cell) { e.preventDefault(); jumpTo(cell.dataset.no); ov.classList.remove('open'); }
 });
 function openLb() { if (lb.showModal) lb.showModal(); else lb.setAttribute('open', ''); }
+function stopVid() { lbVid.pause(); lbVid.removeAttribute('src'); lbVid.load(); }
+function playVid() {
+  if (!lbVid.paused) return;
+  const p = lbVid.play();
+  if (p && p.catch) p.catch(() => {
+    // 首次设置 src 时播放会被资源加载中断，等数据就绪再播一次
+    lbVid.addEventListener('loadeddata', () => { if (lbVid.paused) lbVid.play().catch(() => {}); }, { once: true });
+  });
+}
 function show(i) {
   if (!shots.length) return;
   si = (i + shots.length) % shots.length;
-  lbImg.src = shots[si].full;
-  lbImg.alt = shots[si].label;
-  lbCap.innerHTML = '<b>' + shots[si].label + '</b>' + (shots[si].cap || '');
+  const s = shots[si];
+  const isVid = !!s.video;
+  lbImg.style.display = isVid ? 'none' : 'block';
+  lbVid.style.display = isVid ? 'block' : 'none';
+  if (isVid) {
+    lbImg.removeAttribute('src');
+    lbVid.poster = s.poster || '';
+    if (lbVid.getAttribute('src') !== s.video) lbVid.src = s.video;
+    playVid();
+  } else {
+    stopVid();
+    lbImg.src = s.full;
+    lbImg.alt = s.label;
+  }
+  lbCap.innerHTML = '<b>' + s.label + '</b>' + (s.cap || '');
   const many = shots.length > 1;
   lbPrev.style.display = many ? 'grid' : 'none';
   lbNext.style.display = many ? 'grid' : 'none';
 }
+lb.addEventListener('close', stopVid);
 document.getElementById('lbClose').addEventListener('click', () => lb.close());
 lbPrev.addEventListener('click', e => { e.stopPropagation(); show(si - 1); });
 lbNext.addEventListener('click', e => { e.stopPropagation(); show(si + 1); });
